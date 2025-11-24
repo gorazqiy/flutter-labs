@@ -15,9 +15,22 @@ class _HomeState extends State<Home> {
   List<Book> books = [];
   bool isLoading = false;
 
-  void search() async {
+  @override
+  void initState() {
+    super.initState();
+    loadDefaultBooks();
+  }
+
+  Future<void> loadDefaultBooks() async {
     setState(() => isLoading = true);
-    books = await BookApi.searchBooks(_searchController.text);
+    books = await BookApi.searchBooks("classic", limit: 10);
+    setState(() => isLoading = false);
+  }
+
+  void search() async {
+    if (_searchController.text.isEmpty) return;
+    setState(() => isLoading = true);
+    books = await BookApi.searchBooks(_searchController.text, limit: 10);
     setState(() => isLoading = false);
   }
 
@@ -39,7 +52,6 @@ class _HomeState extends State<Home> {
             const SizedBox(height: 10),
             ElevatedButton(onPressed: search, child: const Text("Поиск")),
             const SizedBox(height: 20),
-
             isLoading
                 ? const CircularProgressIndicator()
                 : Expanded(
@@ -53,6 +65,13 @@ class _HomeState extends State<Home> {
                               b.imageUrl,
                               width: 50,
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/book_placeholder.png',
+                                  width: 50,
+                                  fit: BoxFit.cover,
+                                );
+                              },
                             ),
                             title: Text(b.title),
                             subtitle: Text(b.author),

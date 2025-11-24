@@ -10,10 +10,21 @@ class FavoritesPage extends StatefulWidget {
 }
 
 class _FavoritesPageState extends State<FavoritesPage> {
+  List<Book> favorites = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadFavorites();
+  }
+
+  Future<void> loadFavorites() async {
+    favorites = await FavoritesService.getFavorites();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    final favorites = FavoritesService.favorites;
-
     return Scaffold(
       appBar: AppBar(title: const Text("Избранное")),
       body: favorites.isEmpty
@@ -24,7 +35,18 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 Book b = favorites[i];
                 return Card(
                   child: ListTile(
-                    leading: Image.network(b.imageUrl, width: 50),
+                    leading: Image.network(
+                      b.imageUrl,
+                      width: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/book_placeholder.png',
+                          width: 50,
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    ),
                     title: Text(b.title),
                     subtitle: Row(
                       children: List.generate(
@@ -48,14 +70,14 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                 builder: (_) => EditFavoritePage(book: b),
                               ),
                             );
-                            setState(() {});
+                            await loadFavorites();
                           },
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            FavoritesService.removeFavorite(b.id);
-                            setState(() {});
+                          onPressed: () async {
+                            await FavoritesService.removeFavorite(b.id);
+                            await loadFavorites();
                           },
                         ),
                       ],
@@ -110,6 +132,23 @@ class _EditFavoritePageState extends State<EditFavoritePage> {
     );
   }
 
+  Future<void> saveBook() async {
+    widget.book.title = titleController.text;
+    widget.book.author = authorController.text;
+    widget.book.year = yearController.text;
+    widget.book.description = descriptionController.text;
+    widget.book.rating = rating;
+
+    List<Book> favs = await FavoritesService.getFavorites();
+    int index = favs.indexWhere((b) => b.id == widget.book.id);
+    if (index != -1) {
+      favs[index] = widget.book;
+      await FavoritesService.saveFavorites(favs);
+    }
+
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,6 +158,21 @@ class _EditFavoritePageState extends State<EditFavoritePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Image.network(
+                widget.book.imageUrl,
+                height: 200,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset(
+                    'assets/book_placeholder.png',
+                    height: 200,
+                    fit: BoxFit.cover,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: titleController,
               decoration: const InputDecoration(labelText: "Название"),
@@ -146,14 +200,7 @@ class _EditFavoritePageState extends State<EditFavoritePage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  widget.book.title = titleController.text;
-                  widget.book.author = authorController.text;
-                  widget.book.year = yearController.text;
-                  widget.book.description = descriptionController.text;
-                  widget.book.rating = rating;
-                  Navigator.pop(context);
-                },
+                onPressed: saveBook,
                 child: const Text("Сохранить"),
               ),
             ),
