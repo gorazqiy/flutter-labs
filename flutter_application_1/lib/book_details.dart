@@ -80,6 +80,7 @@ class _BookDetailsState extends State<BookDetails> {
                 label: Text(isFavorite ? "Добавлено" : "Добавить в избранное"),
               ),
             ),
+            const SizedBox(height: 35),
           ],
         ),
       ),
